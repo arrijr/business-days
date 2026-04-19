@@ -30,6 +30,8 @@ Add **one row** — this is what injects the Proxy Secret on every gateway reque
 
 Without this row every request returns `403 FORBIDDEN` from our middleware.
 
+> ⚠️ **Do not put this in Transformations.** The Transformations dialog has a `Key` field that expects dotted-path format (`request.header.data`) and will reject a plain header name with "Invalid format". Use the **Secret Headers & Parameters** table above.
+
 ## Studio → Security → Transformations
 
 **None required.** Base URL already contains `/api/v1`, so user-facing paths like `/holidays/DE/2026` map 1:1 to origin `/api/v1/holidays/DE/2026`. Leave the Transformations table empty.
@@ -173,14 +175,18 @@ print(r.json()["result_date"])  # "2026-04-27"
 
 ## Studio Tests (configure before Go-Live)
 
-| Test | Location | Schedule | URL | Assertion |
-|---|---|---|---|---|
-| Health | Frankfurt | every 15 min | `{base}/api/health` | `body.status == "ok"` |
-| Happy path — holidays | Frankfurt | every 60 min | `{base}/api/v1/holidays/DE/2026` | `body.count > 0` |
-| Happy path — is-business-day | Frankfurt | every 60 min | `{base}/api/v1/is-business-day?date=2026-12-25&country=DE` | `body.is_business_day == false` |
-| Error path — invalid country | Frankfurt | every 60 min | `{base}/api/v1/is-business-day?date=2026-04-20&country=XX` | `body.code == "COUNTRY_NOT_SUPPORTED"` |
+> **Free plan limit:** RapidAPI Studio free tier allows only 2 active tests per API. The first two below are the minimum; the rest only if the plan is upgraded.
 
-Default header for all guarded tests: `X-RapidAPI-Proxy-Secret: c7afb1b7-5d56-4117-9bbd-be8f9b2ab107`.
+| # | Test | Location | Schedule | URL | Assertion |
+|---|---|---|---|---|---|
+| 1 | Health | Frankfurt | every 15 min | `{base}/api/health` | Expression `health.data.status` equals `ok` |
+| 2 | Happy — holidays | Frankfurt | every 60 min | `{base}/api/v1/holidays/DE/2026` | Expression `holidays.data.country` equals `DE` |
+| 3 _(optional, needs paid plan)_ | Happy — is-business-day | Frankfurt | every 60 min | `{base}/api/v1/is-business-day?date=2026-12-25&country=DE` | `bizday.data.reason` equals `public_holiday` |
+| 4 _(optional, needs paid plan)_ | Error — invalid country | Frankfurt | every 60 min | `{base}/api/v1/is-business-day?date=2026-04-20&country=XX` | `errcase.data.code` equals `COUNTRY_NOT_SUPPORTED` |
+
+**Header for all guarded tests (#2–#4):** `X-RapidAPI-Proxy-Secret: c7afb1b7-5d56-4117-9bbd-be8f9b2ab107`. Test #1 (`/api/health`) is unguarded, no header needed.
+
+**Expression syntax in Studio:** enter path without `{{ }}` braces (e.g. `health.data.status`), response body lives under `<var>.data.<field>`, not `<var>.body.<field>`.
 
 ---
 
