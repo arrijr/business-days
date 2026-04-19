@@ -1,0 +1,449 @@
+openapi: 3.0.0
+info:
+  title: Business Days API
+  version: "1.0.0"
+  description: >
+    Check business days and public holidays for 100+ countries.
+    Determine if a date is a business day, list public holidays,
+    and calculate dates N business days forward or backward.
+    Powered by Nager.Date with aggressive caching for fast responses.
+
+servers:
+  - url: https://business-days-api.vercel.app/api/v1
+    description: Production
+
+paths:
+  /holidays/{country}/{year}:
+    get:
+      summary: Get public holidays for a country and year
+      description: >
+        Returns all public holidays for the given country and year.
+        Includes regional holidays where available (e.g. German Bundesländer,
+        US States). Results are cached for up to 365 days.
+      operationId: getHolidays
+      parameters:
+        - name: country
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            example: DE
+          description: ISO 3166-1 alpha-2 country code (uppercase)
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2030
+            example: 2026
+          description: Year (current year ± 5)
+      responses:
+        "200":
+          description: List of public holidays
+          headers:
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS]
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HolidaysResponse"
+              example:
+                country: "DE"
+                country_name: "Germany"
+                year: 2026
+                count: 9
+                holidays:
+                  - date: "2026-01-01"
+                    name: "New Year's Day"
+                    local_name: "Neujahr"
+                    type: "public"
+                    global: true
+                    regions: null
+                  - date: "2026-04-03"
+                    name: "Good Friday"
+                    local_name: "Karfreitag"
+                    type: "public"
+                    global: true
+                    regions: null
+                  - date: "2026-10-03"
+                    name: "German Unity Day"
+                    local_name: "Tag der Deutschen Einheit"
+                    type: "public"
+                    global: true
+                    regions: null
+        "400":
+          description: Invalid country code or year
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_country:
+                  value:
+                    error: "Country code 'XX' is not supported"
+                    code: "COUNTRY_NOT_SUPPORTED"
+                invalid_year:
+                  value:
+                    error: "Year must be between 2020 and 2030"
+                    code: "INVALID_YEAR"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Upstream service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Holiday data service temporarily unavailable"
+                code: "SERVICE_UNAVAILABLE"
+
+  /is-business-day:
+    get:
+      summary: Check if a date is a business day
+      description: >
+        Returns whether the given date is a business day in the specified country.
+        Accounts for weekends (Saturday and Sunday) and public holidays.
+        If the date is not a business day, the reason and holiday name are included.
+      operationId: isBusinessDay
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-12-25"
+          description: Date to check (ISO 8601 format YYYY-MM-DD)
+        - name: country
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            example: DE
+          description: ISO 3166-1 alpha-2 country code (uppercase)
+      responses:
+        "200":
+          description: Business day check result
+          headers:
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS]
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IsBusinessDayResponse"
+              examples:
+                is_holiday:
+                  summary: Date is a public holiday
+                  value:
+                    date: "2026-12-25"
+                    country: "DE"
+                    is_business_day: false
+                    reason: "public_holiday"
+                    holiday_name: "Christmas Day"
+                is_weekend:
+                  summary: Date is a weekend
+                  value:
+                    date: "2026-04-18"
+                    country: "DE"
+                    is_business_day: false
+                    reason: "weekend"
+                    holiday_name: null
+                is_business_day:
+                  summary: Date is a business day
+                  value:
+                    date: "2026-04-20"
+                    country: "DE"
+                    is_business_day: true
+                    reason: null
+                    holiday_name: null
+        "400":
+          description: Invalid date or country code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_date:
+                  value:
+                    error: "Invalid date format — use YYYY-MM-DD"
+                    code: "INVALID_DATE"
+                invalid_country:
+                  value:
+                    error: "Country code 'XX' is not supported"
+                    code: "COUNTRY_NOT_SUPPORTED"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /business-days/calculate:
+    get:
+      summary: Calculate a date N business days from a start date
+      description: >
+        Returns the date that is exactly N business days forward or backward
+        from the given start date, skipping weekends and public holidays.
+        Useful for payment due dates, delivery estimates, and SLA calculations.
+      operationId: calculateBusinessDays
+      parameters:
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-04-20"
+          description: Start date (ISO 8601 format YYYY-MM-DD)
+        - name: days
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            example: 5
+          description: Number of business days to add or subtract
+        - name: country
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            example: DE
+          description: ISO 3166-1 alpha-2 country code (uppercase)
+        - name: direction
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [forward, backward]
+            default: forward
+            example: forward
+          description: Direction to calculate — forward (default) or backward
+      responses:
+        "200":
+          description: Calculated business day result
+          headers:
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS]
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalculateResponse"
+              example:
+                start_date: "2026-04-20"
+                country: "DE"
+                days_requested: 5
+                direction: "forward"
+                result_date: "2026-04-27"
+                skipped_dates:
+                  - date: "2026-04-25"
+                    reason: "weekend"
+                  - date: "2026-04-26"
+                    reason: "weekend"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  nager_reachable:
+                    type: boolean
+                  countries_supported:
+                    type: integer
+                    example: 100
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    Holiday:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-01-01"
+        name:
+          type: string
+          example: "New Year's Day"
+        local_name:
+          type: string
+          example: "Neujahr"
+        type:
+          type: string
+          enum: [public, bank, school, optional, observance]
+          example: "public"
+        global:
+          type: boolean
+          description: True if the holiday applies nationwide, false if regional only
+          example: true
+        regions:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: List of region/state codes if not a global holiday
+          example: null
+
+    HolidaysResponse:
+      type: object
+      properties:
+        country:
+          type: string
+          example: "DE"
+        country_name:
+          type: string
+          example: "Germany"
+        year:
+          type: integer
+          example: 2026
+        count:
+          type: integer
+          example: 9
+        holidays:
+          type: array
+          items:
+            $ref: "#/components/schemas/Holiday"
+
+    IsBusinessDayResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-12-25"
+        country:
+          type: string
+          example: "DE"
+        is_business_day:
+          type: boolean
+          example: false
+        reason:
+          type: string
+          nullable: true
+          enum: [public_holiday, weekend, null]
+          example: "public_holiday"
+        holiday_name:
+          type: string
+          nullable: true
+          example: "Christmas Day"
+
+    SkippedDate:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-04-25"
+        reason:
+          type: string
+          enum: [public_holiday, weekend]
+          example: "weekend"
+
+    CalculateResponse:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+          example: "2026-04-20"
+        country:
+          type: string
+          example: "DE"
+        days_requested:
+          type: integer
+          example: 5
+        direction:
+          type: string
+          enum: [forward, backward]
+          example: "forward"
+        result_date:
+          type: string
+          format: date
+          example: "2026-04-27"
+        skipped_dates:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkippedDate"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object

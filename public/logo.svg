@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <rect width="120" height="120" rx="24" fill="#0F172A"/>
+  <g transform="translate(78 20)">
+    <rect x="0" y="4" width="22" height="20" rx="3" fill="none" stroke="#FACC15" stroke-width="2"/>
+    <line x1="0" y1="11" x2="22" y2="11" stroke="#FACC15" stroke-width="2"/>
+    <line x1="6" y1="0" x2="6" y2="8" stroke="#FACC15" stroke-width="2" stroke-linecap="round"/>
+    <line x1="16" y1="0" x2="16" y2="8" stroke="#FACC15" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="11" cy="17" r="1.8" fill="#FACC15"/>
+  </g>
+  <text x="60" y="82" text-anchor="middle"
+        font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
+        font-weight="700" font-size="22" fill="#FFFFFF" letter-spacing="2">BIZ</text>
+</svg>
