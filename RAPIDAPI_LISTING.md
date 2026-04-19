@@ -20,6 +20,24 @@ Copy-paste into RapidAPI Studio. Generated 2026-04-19.
 
 ---
 
+## Studio → Security → Secret Headers & Parameters
+
+Add **one row** — this is what injects the Proxy Secret on every gateway request so our middleware accepts the call:
+
+| Name | Value | Type | Description |
+|---|---|---|---|
+| `X-RapidAPI-Proxy-Secret` | `c7afb1b7-5d56-4117-9bbd-be8f9b2ab107` | Header | Auth between RapidAPI gateway and our Vercel origin |
+
+Without this row every request returns `403 FORBIDDEN` from our middleware.
+
+## Studio → Security → Transformations
+
+**None required.** Base URL already contains `/api/v1`, so user-facing paths like `/holidays/DE/2026` map 1:1 to origin `/api/v1/holidays/DE/2026`. Leave the Transformations table empty.
+
+(If you ever drop `/api/v1` from the Base URL, add a Request transformation: Action `AddToPath`, Value `/api/v1`, Scope `All endpoints`.)
+
+---
+
 ## Tagline (max 60 chars)
 
 ```
