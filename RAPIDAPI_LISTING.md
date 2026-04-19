@@ -52,66 +52,89 @@ Check business days & holidays for 100+ countries
 ## Short description (max 160 chars)
 
 ```
-Public holidays & business-day calculator for 100+ countries. Check if a date is a workday, list holidays, calculate N business days forward/back.
+Public holidays API + working days calculator for 100+ countries. Check if a date is a business day, list holidays, calculate N working days.
 ```
+(139 chars ✓ — keywords front-loaded: "Public holidays API", "working days calculator", "business day")
 
 ---
 
 ## Long description (Overview tab)
 
+> Paste this whole Markdown block into Studio → Settings → Description. Keywords are woven in naturally (no separate Tags field exists on RapidAPI — search ranking comes from the description text).
+
 ```markdown
-# Business Days API
+# Business Days API — Public Holidays & Working Days Calculator for 100+ Countries
 
-Check whether a date is a business day, list public holidays, and calculate dates N business days forward or backward — for **100+ countries** including Germany, Austria, Switzerland, USA (with states), UK, France, Spain, Italy, and many more.
+The **Business Days API** is a fast, reliable REST API to check public holidays and calculate business days across **100+ countries**. Built for scheduling tools, HR software, e-commerce delivery estimation, payroll systems, and financial due-date calculations.
 
-## Why this API?
+Whether you need to answer "is December 25 a working day in Germany?", list all bank holidays for Italy in 2026, or calculate the 5th business day after April 20 in the UK — this API does it in a single HTTP call.
 
-- **100+ countries** — largest coverage on RapidAPI
-- **Regional holidays** — German Bundesländer, US states, Swiss cantons
-- **Business-day math** — "5 working days after April 20?" — answer in one call
-- **Fast** — aggressive Redis caching, cached responses < 30ms
-- **Accurate** — backed by the open-source Nager.Date dataset (MIT licensed)
+## Why developers choose this API
 
-## Use cases
+- **100+ countries supported** — Germany, Austria, Switzerland, USA (with states), United Kingdom, France, Spain, Italy, Netherlands, Poland, Canada, Australia, Brazil, Japan, and many more. Full ISO 3166-1 alpha-2 coverage.
+- **Regional holidays included** — German Bundesländer, US states, Swiss cantons, Spanish autonomous communities. Regional holiday codes returned where available.
+- **Business day math in one call** — calculate N working days forward or backward from any start date, skipping weekends and public holidays automatically.
+- **Blazing fast** — aggressive Redis caching, cached responses under 30 ms, served from Frankfurt (EU) with global edge reach.
+- **Stable error codes** — machine-readable `code` field (`COUNTRY_NOT_SUPPORTED`, `INVALID_DATE`, etc.) for reliable client-side handling.
+- **Generous free tier** — 500 requests / month on the free plan, no credit card required.
 
-- **Scheduling & HR** — compute next working day, SLA deadlines
-- **E-commerce** — delivery date estimates across markets
-- **Finance & accounting** — payment due dates, invoice aging
-- **Payroll** — holiday-aware shift planning
-- **Logistics** — dispatch cut-off calculations
+## Common use cases
+
+- **Scheduling & HR software** — compute next working day, SLA deadlines, holiday-aware shift planning, PTO calculators.
+- **E-commerce** — estimate delivery dates across multiple markets, exclude non-working days from carrier lead times.
+- **Finance & accounting** — payment due dates, invoice aging, T+N settlement calculations, tax filing deadlines.
+- **Payroll** — calculate paid-holiday offsets, pro-rate monthly salaries for new hires, validate leave requests.
+- **Logistics & supply chain** — dispatch cut-off calculations, customs clearance estimates, cross-border lead times.
+- **Legal & compliance tech** — contract deadline math, statute-of-limitations calculators, court filing windows.
+- **Project management tools** — working-day Gantt charts, milestone scheduling, sprint burndown corrections.
 
 ## Endpoints
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /holidays/{country}/{year}` | All public holidays for a country + year |
-| `GET /is-business-day?date=&country=` | Is a date a business day? (weekend / holiday detection) |
-| `GET /business-days/calculate?start=&days=&country=&direction=` | N business days forward or backward |
+### `GET /holidays/{country}/{year}` — list all public holidays
+
+Returns every public holiday for a country and year, including local names (e.g. "Neujahr" for New Year's Day in Germany), regional scope, and holiday type. Covers 2020–2030.
+
+### `GET /is-business-day` — is this date a workday?
+
+Given a date and country, returns `true`/`false` plus the reason (`weekend` or `public_holiday`) and the holiday name where applicable. Perfect for "show me the next deliverable date" workflows.
+
+### `GET /business-days/calculate` — add/subtract N working days
+
+Calculate the date exactly N business days forward (`direction=forward`) or backward (`direction=backward`) from a start date. Returns the result date plus the list of skipped dates with reasons — essential for transparent SLA calculators and audit trails.
 
 ## Response format
 
-All responses are JSON, dates are ISO 8601 (`YYYY-MM-DD`), country codes are ISO 3166-1 alpha-2. Every response carries `X-Cache: HIT|MISS` and `X-RateLimit-Remaining` headers. Error responses follow `{ "error": string, "code": string }` with stable error codes (`COUNTRY_NOT_SUPPORTED`, `INVALID_DATE`, `INVALID_YEAR`, `SERVICE_UNAVAILABLE`).
+- **JSON** responses, UTF-8, `Content-Type: application/json`
+- **Dates**: ISO 8601 `YYYY-MM-DD`
+- **Country codes**: ISO 3166-1 alpha-2 (uppercase, e.g. `DE`, `US`, `GB`)
+- **Headers**: every response includes `X-Cache: HIT|MISS` and `X-RateLimit-Remaining` for observability
+- **Errors**: `{ "error": string, "code": string }` with stable machine-readable codes
+
+## Supported countries (partial list)
+
+Germany (DE), Austria (AT), Switzerland (CH), United States (US), United Kingdom (GB), France (FR), Spain (ES), Italy (IT), Netherlands (NL), Belgium (BE), Luxembourg (LU), Ireland (IE), Portugal (PT), Denmark (DK), Sweden (SE), Norway (NO), Finland (FI), Iceland (IS), Poland (PL), Czech Republic (CZ), Slovakia (SK), Hungary (HU), Romania (RO), Bulgaria (BG), Croatia (HR), Slovenia (SI), Greece (GR), Cyprus (CY), Malta (MT), Estonia (EE), Latvia (LV), Lithuania (LT), Canada (CA), Mexico (MX), Brazil (BR), Argentina (AR), Chile (CL), Colombia (CO), Peru (PE), Australia (AU), New Zealand (NZ), Japan (JP), South Korea (KR), Singapore (SG), Philippines (PH), Indonesia (ID), Vietnam (VN), India-adjacent markets, South Africa (ZA), Egypt (EG), Morocco (MA), Tunisia (TN), and **65+ more**.
+
+## FAQ
+
+**Is this API free?** Yes — the BASIC plan gives you 500 requests per month at $0. Paid tiers start at $9/month for 10,000 requests.
+
+**How current is the holiday data?** Holiday lists are sourced from the open-source Nager.Date dataset (MIT licensed) and cached per country/year. Data covers years 2020 through 2030.
+
+**Do you support regional holidays (e.g. Oktoberfest in Bavaria)?** Regional holiday metadata is returned in the `regions` field on each holiday. For the `is-business-day` and `calculate` endpoints, only nationwide (global) public holidays block a business day in v1 — regional support is on the roadmap for v2.
+
+**Does your weekend definition include Friday (for Gulf/Islamic countries)?** Not in v1 — weekends are Saturday + Sunday globally. Configurable weekend rules are planned for v2.
+
+**What happens on a rate limit?** Responses return HTTP 429 with `{ "error": "...", "code": "RATE_LIMIT_EXCEEDED" }`. Upgrade your plan in RapidAPI to raise the limit.
+
+**Is the data legally authoritative?** No. This is a convenience API for developer tooling. For legally binding deadlines (tax filings, court dates, contractual cutoffs) always verify against the official government gazette or publication of the relevant country.
+
+## Keywords
+
+business days API, public holidays API, working days calculator, holidays by country, bank holidays API, calendar API, business day calculator, workday calculator, holiday lookup API, ISO country holidays, Nager Date wrapper, REST API holidays, JSON holidays API, is business day check, next working day API, SLA calculator API, delivery date API, payment due date calculator, payroll holidays API, scheduling API.
 
 ## Disclaimer
 
 Holiday data is sourced from the open-source Nager.Date project. Data may lag or miss regional edge cases. Do not use as the sole source of truth for legally binding deadlines — verify against official government publications where accuracy is critical.
-```
-
----
-
-## Tags (SEO keywords)
-
-```
-business days api
-public holidays api
-working days calculator
-holidays by country
-calendar api
-business day calculation
-holiday lookup
-workday calculator
-iso country holidays
-nager date
 ```
 
 ---

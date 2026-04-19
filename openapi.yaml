@@ -9,8 +9,10 @@ info:
     Powered by Nager.Date with aggressive caching for fast responses.
 
 servers:
-  - url: https://business-days-api.vercel.app/api/v1
-    description: Production
+  - url: https://business-days-kohl.vercel.app/api/v1
+    description: Production (Vercel origin)
+  - url: https://business-days-api.p.rapidapi.com
+    description: RapidAPI Gateway (consumer-facing)
 
 paths:
   /holidays/{country}/{year}:
